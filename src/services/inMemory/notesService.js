@@ -33,6 +33,7 @@ class NotesService {
   }
 
   getNotes() {
+    console.log(this._notes);
     return this._notes;
   }
 
