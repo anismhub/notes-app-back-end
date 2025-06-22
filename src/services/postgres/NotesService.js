@@ -39,6 +39,7 @@ class NotesService {
       values: [owner],
     };
     const result = await this._pool.query(query);
+
     return result.rows.map(mapDBToModel);
   }
 
@@ -50,6 +51,7 @@ class NotesService {
       values: [id],
     };
     const result = await this._pool.query(query);
+    console.log(result.rows);
 
     if (!result.rows.length) {
       throw new NotFoundError('Catatan tidak ditemukan');
