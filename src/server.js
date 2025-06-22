@@ -33,7 +33,7 @@ const ExportsValidator = require('./validator/exports');
 
 // uploads
 const uploads = require('./api/uploads');
-const StorageService = require('./services/storage/StorageService');
+const StorageService = require('./services/s3/StorageService');
 const UploadsValidator = require('./validator/uploads');
 
 const ClientError = require('./exceptions/ClientError');
@@ -44,9 +44,11 @@ const init = async () => {
   const notesService = new NotesService(collaborationsService);
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
-  const storageService = new StorageService(
+  const storageService = new StorageService();
+  /* jika menggunakan storage service lokal
     path.resolve(__dirname, 'api/uploads/file/images')
   );
+  */
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -136,27 +138,33 @@ const init = async () => {
     // mendapatkan konteks response dari request
     const { response } = request;
 
-    // penanganan client error secara internal
-    if (response instanceof ClientError) {
-      const newResponse = h.response({
-        status: 'fail',
-        message: response.message,
-      });
-      newResponse.code(response.statusCode);
-      return newResponse;
-    }
+    if (response instanceof Error) {
+      // penanganan client error secara internal.
+      if (response instanceof ClientError) {
+        const newResponse = h.response({
+          status: 'fail',
+          message: response.message,
+        });
+        newResponse.code(response.statusCode);
+        return newResponse;
+      }
 
-    if (response instanceof ServerError) {
+      // mempertahankan penanganan client error oleh hapi secara native, seperti 404, etc.
+      if (!response.isServer) {
+        return h.continue;
+      }
+
+      // penanganan server error sesuai kebutuhan
+      console.log(response);
       const newResponse = h.response({
         status: 'error',
-        message: response.message,
+        message: 'terjadi kegagalan pada server kami',
       });
-      newResponse.code(response.statusCode);
-      console.log(`tes: ${newResponse}`);
-
+      newResponse.code(500);
       return newResponse;
     }
 
+    // jika bukan error, lanjutkan dengan response sebelumnya (tanpa terintervensi)
     return h.continue;
   });
 
